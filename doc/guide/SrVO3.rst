@@ -18,10 +18,14 @@ rotational-invariant Slater interaction Hamiltonian (:download:`dft_dmft_cthyb_s
 <images_scripts/dft_dmft_cthyb_slater.py>`). The user has to adapt these
 scripts to his own needs. How to execute your script is described :ref:`here<runpy>`.
 
+The python script described in this documentation can be downloaded :script-code-file:`here <SrVO3.py>`.
+
 Loading modules
 ---------------
 
-First, we load the necessary modules::
+First, we load the necessary modules:
+
+.. script-code:: SrVO3.py
 
   from triqs_dft_tools.sumk_dft import *
   from pytriqs.gf import *
@@ -36,7 +40,9 @@ The last two lines load the modules for the construction of the
 Initializing SumkDFT
 --------------------
 
-We define some parameters, which should be self-explanatory::
+We define some parameters, which should be self-explanatory.
+
+.. script-code:: SrVO3.py
 
   dft_filename = 'SrVO3'          # filename
   U = 4.0                         # interaction parameters
@@ -49,7 +55,9 @@ We define some parameters, which should be self-explanatory::
   prec_mu = 0.0001                # precision of chemical potential
 
 
-And next, we can initialize the :class:`SumkDFT <dft.sumk_dft.SumkDFT>` class::
+And next, we can initialize the :class:`SumkDFT <dft.sumk_dft.SumkDFT>` class:
+
+.. script-code:: SrVO3.py
 
   SK = SumkDFT(hdf_file=dft_filename+'.h5',use_dft_blocks=use_blocks)
 
@@ -58,7 +66,9 @@ Initializing the solver
 
 We also have to specify the :ref:`CTHYB solver <triqscthyb:welcome>` related settings.
 We assume that the DMFT script for SrVO3 is executed on 16 cores. A sufficient set
-of parameters for a first guess is::
+of parameters for a first guess is:
+
+.. script-code:: SrVO3.py
 
   p = {}
   # solver
@@ -88,7 +98,9 @@ It consist of two parts:
    interaction Hamiltonian.
 #. Initializing the solver class itself.
 
-The first step is done using methods of the :ref:`TRIQS <triqslibs:welcome>` library::
+The first step is done using methods of the :ref:`TRIQS <triqslibs:welcome>` library:
+
+.. script-code:: SrVO3.py
 
   n_orb = SK.corr_shells[0]['dim']
   l = SK.corr_shells[0]['l']
@@ -102,7 +114,9 @@ The first step is done using methods of the :ref:`TRIQS <triqslibs:welcome>` lib
 We assumed here that we want to use an interaction matrix with
 Kanamori definitions of :math:`U` and :math:`J`.
 
-Next, we construct the Hamiltonian and the solver::
+Next, we construct the Hamiltonian and the solver:
+
+.. script-code:: SrVO3.py
 
   h_int = h_int_density(spin_names, orb_names, map_operator_structure=SK.sumk_to_solver[0], U=Umat, Uprime=Upmat)
   S = Solver(beta=beta, gf_struct=gf_struct)
@@ -122,7 +136,9 @@ DMFT cycle
 
 Now we can go to the definition of the self-consistency step. It consists again
 of the basic steps discussed in the :ref:`previous section <singleshot>`, with
-some additional refinements::
+some additional refinements:
+
+.. script-code:: SrVO3.py
 
   for iteration_number in range(1,loops+1):
       if mpi.is_master_node(): print "Iteration = ", iteration_number
