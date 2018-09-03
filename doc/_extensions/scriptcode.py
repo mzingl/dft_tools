@@ -3,6 +3,7 @@ from docutils.parsers.rst.directives.body import CodeBlock
 import sphinx.roles
 from docutils import nodes
 import os
+import re
 
 
 class ScriptCode(CodeBlock):
@@ -11,15 +12,26 @@ class ScriptCode(CodeBlock):
 
     def run(self):
         filename = self.arguments[0]
-        absfilename = os.path.abspath(filename)
         code = '\n'.join(self.content) + '\n\n'
+        code_test = code.replace("#TEST ", "")
+        code_test = re.sub(r"\n\s*#NOTEST[^\n]*", "", code_test)
+        code_test = re.sub(r"^\s*#NOTEST[^\n]*\n", "", code_test)
+        code = code.replace("#NOTEST ", "")
+        code = re.sub(r"\n\s*#TEST[^\n]*", "", code)
+        code = re.sub(r"^\s*#TEST[^\n]*\n", "", code)
         if filename in ScriptCode.seen_files:
             mode = 'a'
         else:
             mode = 'w'
-            ScriptCode.seen_files[filename] = absfilename
-        with open(absfilename, mode) as fi:
+            ScriptCode.seen_files[filename] = filename
+            try:
+                os.mkdir('scripts')
+            except OSError:
+                pass
+        with open('scripts/' + filename, mode) as fi:
             fi.write(code)
+        with open("scripts/test_" + filename, mode) as fi:
+            fi.write(code_test)
         out = []
         out.append(nodes.literal_block(code, code))
         return out
@@ -32,7 +44,7 @@ def script_code_file_role(typ, rawtext, text, lineno, inliner,
     ret = download_role(typ, rawtext, text, lineno, inliner,
                         options, content)
     ret[0][0]['reftarget'] = '/' + \
-        os.path.relpath(os.path.abspath(ret[0][0]['reftarget']), env.srcdir)
+        os.path.relpath(os.path.abspath('scripts/' + ret[0][0]['reftarget']), env.srcdir)
     return ret
 
 

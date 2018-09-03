@@ -39,7 +39,7 @@ triqs_get_git_hash_of_source_dir(DFT_TOOLS_GIT_HASH)
 MESSAGE(STATUS "Dft_tools version : ${DFT_TOOLS_VERSION}")
 message(STATUS "Git hash: ${DFT_TOOLS_GIT_HASH}")
 
-add_subdirectory(fortran/dmftproj) 
+add_subdirectory(fortran/dmftproj)
 
 # Add the compiling options (-D... ) for C++
 message(STATUS "TRIQS : Adding compilation flags detected by the library (C++11/14, libc++, etc...) ")
@@ -47,6 +47,22 @@ message(STATUS "TRIQS : Adding compilation flags detected by the library (C++11/
 add_subdirectory(c++)
 add_subdirectory(python python/triqs_dft_tools)
 add_subdirectory(shells)
+
+#------------------------
+# Documentation
+#------------------------
+option(Build_Documentation "Build documentation" OFF)
+option(Test_documentation "Test scripts in documentation" ON)
+if(${Build_Documentation})
+  if(NOT ${TRIQS_WITH_DOCUMENTATION})
+    message("Error: TRIQS library has not been compiled with its documentation")
+    set(Test_documentation OFF CACHE BOOL "Test scripts in documentation" FORCE)
+  endif()
+
+  add_subdirectory(doc)
+else()
+  set(Test_documentation OFF CACHE BOOL "Test scripts in documentation" FORCE)
+endif()
 
 #------------------------
 # tests
@@ -73,17 +89,6 @@ option(Build_Tests "Build the tests of the library " ON)
 if (Build_Tests)
   message(STATUS "-------- Preparing tests  -------------")
  add_subdirectory(test)
-endif()
-
-#------------------------
-# Documentation
-#------------------------
-option(Build_Documentation "Build documentation" OFF)
-if(${Build_Documentation})
-  if(NOT ${TRIQS_WITH_DOCUMENTATION})
-    message("Error: TRIQS library has not been compiled with its documentation")
-  endif()
-  add_subdirectory(doc)
 endif()
 
 #--------------------------------------------------------
