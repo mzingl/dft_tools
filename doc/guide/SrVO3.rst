@@ -27,7 +27,8 @@ First, we load the necessary modules:
 
 .. script-code:: SrVO3.py
 
-  from triqs_dft_tools.sumk_dft import *
+  #NOTEST from triqs_dft_tools.sumk_dft import *
+  #TEST from sumk_dft import *
   from pytriqs.gf import *
   from pytriqs.archive import HDFArchive
   from pytriqs.operators.util import *
@@ -49,11 +50,11 @@ We define some parameters, which should be self-explanatory.
   J = 0.65
   beta = 40                       # inverse temperature
   loops = 15                      # number of DMFT loops
+  #TEST loops = 2
   mix = 0.8                       # mixing factor of Sigma after solution of the AIM
   dc_type = 1                     # DC type: 0 FLL, 1 Held, 2 AMF
   use_blocks = True               # use bloc structure from DFT input
   prec_mu = 0.0001                # precision of chemical potential
-
 
 And next, we can initialize the :class:`SumkDFT <dft.sumk_dft.SumkDFT>` class:
 
@@ -76,6 +77,8 @@ of parameters for a first guess is:
   p["length_cycle"] = 200
   p["n_warmup_cycles"] = 100000
   p["n_cycles"] = 1000000
+  #TEST p["n_warmup_cycles"] = 100
+  #TEST p["n_cycles"] = 1000
   # tail fit
   p["perform_tail_fit"] = True
   p["fit_max_moment"] = 4
@@ -107,7 +110,7 @@ The first step is done using methods of the :ref:`TRIQS <triqslibs:welcome>` lib
   spin_names = ["up","down"]
   orb_names = [i for i in range(n_orb)]
   # Use GF structure determined by DFT blocks:
-  gf_struct = [(block, indices) for block, indices in SK.gf_struct_solver[0].iteritems()]
+  gf_struct = SK.gf_struct_solver_list[0]
   # Construct U matrix for density-density calculations:
   Umat, Upmat = U_matrix_kanamori(n_orb=n_orb, U_int=U, J_hund=J)
 
@@ -149,8 +152,8 @@ some additional refinements:
       S.G_iw << SK.extract_G_loc()[0]                         # calc the local Green function
       mpi.report("Total charge of Gloc : %.6f"%S.G_iw.total_density())
 
-      # Init the DC term and the real part of Sigma, if no previous runs found:
-      if (iteration_number==1 and previous_present==False):
+      # Init the DC term and the real part of Sigma
+      if (iteration_number==1):
           dm = S.G_iw.density()
           SK.calc_dc(dm, U_interact = U, J_hund = J, orb = 0, use_dc_formula = dc_type)
           S.Sigma_iw << SK.dc_imp[0]['up'][0,0]
@@ -166,7 +169,7 @@ some additional refinements:
       mpi.report("Total charge of impurity problem : %.6f"%S.G_iw.total_density())
 
       # Now mix Sigma and G with factor mix, if wanted:
-      if (iteration_number>1 or previous_present):
+      if (iteration_number>1):
           if mpi.is_master_node():
               ar = HDFArchive(dft_filename+'.h5','a')
               mpi.report("Mixing Sigma and G with factor %s"%mix)
@@ -179,6 +182,8 @@ some additional refinements:
       # Write the final Sigma and G to the hdf5 archive:
       if mpi.is_master_node():
           ar = HDFArchive(dft_filename+'.h5','a')
+          if not 'dmft_output' in ar:
+              ar.create_group('dmft_output')
           ar['dmft_output']['iterations'] = iteration_number
           ar['dmft_output']['G_0'] = S.G0_iw
           ar['dmft_output']['G_tau'] = S.G_tau
@@ -192,6 +197,8 @@ some additional refinements:
 
       # Save stuff into the user_data group of hdf5 archive in case of rerun:
       SK.save(['chemical_potential','dc_imp','dc_energ'])
+
+      #TEST #TODO: add asserts
 
 
 This is all we need for the DFT+DMFT calculation.
