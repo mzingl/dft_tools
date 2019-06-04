@@ -67,12 +67,17 @@ The DMFT calculation
 The DMFT script itself is, except very few details, independent of the DFT package that was used to calculate the local orbitals.
 As soon as one has converted everything to the hdf5 format, the following procedure is practially the same. 
 
+The python script described in this documentation can be downloaded :script-code-file:`here <SrVO3.py>`.
+
 Loading modules
 ---------------
 
-First, we load the necessary modules::
+First, we load the necessary modules:
 
-  from triqs_dft_tools.sumk_dft import *
+.. script-code:: SrVO3.py
+
+  #NOTEST from triqs_dft_tools.sumk_dft import *
+  #TEST from sumk_dft import *
   from pytriqs.gf import *
   from pytriqs.archive import HDFArchive
   from pytriqs.operators.util import *
@@ -85,20 +90,24 @@ The last two lines load the modules for the construction of the
 Initializing SumkDFT
 --------------------
 
-We define some parameters, which should be self-explanatory::
+We define some parameters, which should be self-explanatory.
+
+.. script-code:: SrVO3.py
 
   dft_filename = 'SrVO3'          # filename
   U = 4.0                         # interaction parameters
   J = 0.65
   beta = 40                       # inverse temperature
   loops = 15                      # number of DMFT loops
+  #TEST loops = 2
   mix = 0.8                       # mixing factor of Sigma after solution of the AIM
   dc_type = 1                     # DC type: 0 FLL, 1 Held, 2 AMF
   use_blocks = True               # use bloc structure from DFT input
   prec_mu = 0.0001                # precision of chemical potential
 
+And next, we can initialize the :class:`SumkDFT <dft.sumk_dft.SumkDFT>` class:
 
-And next, we can initialize the :class:`SumkDFT <dft.sumk_dft.SumkDFT>` class::
+.. script-code:: SrVO3.py
 
   SK = SumkDFT(hdf_file=dft_filename+'.h5',use_dft_blocks=use_blocks)
 
@@ -107,7 +116,9 @@ Initializing the solver
 
 We also have to specify the :ref:`CTHYB solver <triqscthyb:welcome>` related settings.
 We assume that the DMFT script for SrVO3 is executed on 16 cores. A sufficient set
-of parameters for a first guess is::
+of parameters for a first guess is:
+
+.. script-code:: SrVO3.py
 
   p = {}
   # solver
@@ -115,6 +126,8 @@ of parameters for a first guess is::
   p["length_cycle"] = 200
   p["n_warmup_cycles"] = 100000
   p["n_cycles"] = 1000000
+  #TEST p["n_warmup_cycles"] = 100
+  #TEST p["n_cycles"] = 1000
   # tail fit
   p["perform_tail_fit"] = True
   p["fit_max_moment"] = 4
@@ -137,21 +150,25 @@ It consist of two parts:
    interaction Hamiltonian.
 #. Initializing the solver class itself.
 
-The first step is done using methods of the :ref:`TRIQS <triqslibs:welcome>` library::
+The first step is done using methods of the :ref:`TRIQS <triqslibs:welcome>` library:
+
+.. script-code:: SrVO3.py
 
   n_orb = SK.corr_shells[0]['dim']
   l = SK.corr_shells[0]['l']
   spin_names = ["up","down"]
   orb_names = [i for i in range(n_orb)]
   # Use GF structure determined by DFT blocks:
-  gf_struct = [(block, indices) for block, indices in SK.gf_struct_solver[0].iteritems()]
+  gf_struct = SK.gf_struct_solver_list[0]
   # Construct U matrix for density-density calculations:
   Umat, Upmat = U_matrix_kanamori(n_orb=n_orb, U_int=U, J_hund=J)
 
 We assumed here that we want to use an interaction matrix with
 Kanamori definitions of :math:`U` and :math:`J`.
 
-Next, we construct the Hamiltonian and the solver::
+Next, we construct the Hamiltonian and the solver:
+
+.. script-code:: SrVO3.py
 
   h_int = h_int_density(spin_names, orb_names, map_operator_structure=SK.sumk_to_solver[0], U=Umat, Uprime=Upmat)
   S = Solver(beta=beta, gf_struct=gf_struct)
@@ -171,7 +188,9 @@ DMFT cycle
 
 Now we can go to the definition of the self-consistency step. It consists again
 of the basic steps discussed in the :ref:`previous section <singleshot>`, with
-some additional refinements::
+some additional refinements:
+
+.. script-code:: SrVO3.py
 
   for iteration_number in range(1,loops+1):
       if mpi.is_master_node(): print "Iteration = ", iteration_number
@@ -182,8 +201,8 @@ some additional refinements::
       S.G_iw << SK.extract_G_loc()[0]                         # calc the local Green function
       mpi.report("Total charge of Gloc : %.6f"%S.G_iw.total_density())
 
-      # Init the DC term and the real part of Sigma, if no previous runs found:
-      if (iteration_number==1 and previous_present==False):
+      # Init the DC term and the real part of Sigma
+      if (iteration_number==1):
           dm = S.G_iw.density()
           SK.calc_dc(dm, U_interact = U, J_hund = J, orb = 0, use_dc_formula = dc_type)
           S.Sigma_iw << SK.dc_imp[0]['up'][0,0]
@@ -199,7 +218,7 @@ some additional refinements::
       mpi.report("Total charge of impurity problem : %.6f"%S.G_iw.total_density())
 
       # Now mix Sigma and G with factor mix, if wanted:
-      if (iteration_number>1 or previous_present):
+      if (iteration_number>1):
           if mpi.is_master_node():
               with HDFArchive(dft_filename+'.h5','r') as ar:
                   mpi.report("Mixing Sigma and G with factor %s"%mix)
@@ -210,12 +229,15 @@ some additional refinements::
 
       # Write the final Sigma and G to the hdf5 archive:
       if mpi.is_master_node():
-          with HDFArchive(dft_filename+'.h5','a') as ar:
-                ar['dmft_output']['iterations'] = iteration_number
-                ar['dmft_output']['G_0'] = S.G0_iw
-                ar['dmft_output']['G_tau'] = S.G_tau
-                ar['dmft_output']['G_iw'] = S.G_iw
-                ar['dmft_output']['Sigma_iw'] = S.Sigma_iw
+          ar = HDFArchive(dft_filename+'.h5','a')
+          if not 'dmft_output' in ar:
+              ar.create_group('dmft_output')
+          ar['dmft_output']['iterations'] = iteration_number
+          ar['dmft_output']['G_0'] = S.G0_iw
+          ar['dmft_output']['G_tau'] = S.G_tau
+          ar['dmft_output']['G_iw'] = S.G_iw
+          ar['dmft_output']['Sigma_iw'] = S.Sigma_iw
+          del ar
 
       # Set the new double counting:
       dm = S.G_iw.density() # compute the density matrix of the impurity problem
@@ -223,6 +245,8 @@ some additional refinements::
 
       # Save stuff into the user_data group of hdf5 archive in case of rerun:
       SK.save(['chemical_potential','dc_imp','dc_energ'])
+
+      #TEST #TODO: add asserts
 
 
 This is all we need for the DFT+DMFT calculation.

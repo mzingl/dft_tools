@@ -5,6 +5,7 @@
 import sys
 sys.path.insert(0, "@TRIQS_SPHINXEXT_PATH@/numpydoc")
 sys.path.insert(0, "@CMAKE_BINARY_DIR@/python")
+sys.path.insert(0, "@CMAKE_SOURCE_DIR@/doc/_extensions")
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
@@ -14,7 +15,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.viewcode',
               'sphinx.ext.autosummary',
-              'numpydoc']
+              'numpydoc',
+              'scriptcode']
 
 source_suffix = '.rst'
 

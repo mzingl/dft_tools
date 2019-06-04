@@ -33,6 +33,7 @@ DFT+DMFT
 
    guide/dftdmft_singleshot
    guide/dftdmft_selfcons
+   guide/Sr2RuO4
 
 Postprocessing
 --------------
